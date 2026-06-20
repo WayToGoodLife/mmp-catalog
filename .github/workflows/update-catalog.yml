@@ -1,0 +1,35 @@
+# .github/workflows/update-catalog.yml
+name: Ежедневное обновление справочника
+
+on:
+  schedule:
+    # Запуск каждый день в 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # Ручной запуск
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Установка Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Установка Playwright
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Запуск скрипта сбора данных
+        run: python catalog_collector.py
+
+      - name: Коммит и пуш обновлений
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add categories.json filters.json
+          git commit -m "Автообновление справочника $(date +'%Y-%m-%d')" || echo "Нет изменений"
+          git push
